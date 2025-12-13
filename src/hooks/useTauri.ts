@@ -145,3 +145,39 @@ export interface CheckResult {
 export async function checkAndReloadCredentials(lastHash: string): Promise<CheckResult> {
   return invoke("check_and_reload_credentials", { last_hash: lastHash });
 }
+
+
+// ============ Gemini Provider ============
+
+export interface GeminiCredentialStatus {
+  loaded: boolean;
+  has_access_token: boolean;
+  has_refresh_token: boolean;
+  expiry_date: number | null;
+  is_valid: boolean;
+  creds_path: string;
+}
+
+export async function getGeminiCredentials(): Promise<GeminiCredentialStatus> {
+  return invoke("get_gemini_credentials");
+}
+
+export async function reloadGeminiCredentials(): Promise<string> {
+  return invoke("reload_gemini_credentials");
+}
+
+export async function refreshGeminiToken(): Promise<string> {
+  return invoke("refresh_gemini_token");
+}
+
+export async function getGeminiEnvVariables(): Promise<EnvVariable[]> {
+  return invoke("get_gemini_env_variables");
+}
+
+export async function getGeminiTokenFileHash(): Promise<string> {
+  return invoke("get_gemini_token_file_hash");
+}
+
+export async function checkAndReloadGeminiCredentials(lastHash: string): Promise<CheckResult> {
+  return invoke("check_and_reload_gemini_credentials", { last_hash: lastHash });
+}
