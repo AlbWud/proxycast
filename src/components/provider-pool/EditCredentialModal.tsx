@@ -7,6 +7,7 @@ import {
   Upload,
   CheckCircle,
   Ban,
+  Globe,
 } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
 import {
@@ -14,6 +15,7 @@ import {
   UpdateCredentialRequest,
   PoolProviderType,
 } from "@/lib/api/providerPool";
+import { validateProxyUrl } from "@/lib/utils";
 
 interface EditCredentialModalProps {
   credential: CredentialDisplay | null;
@@ -82,6 +84,10 @@ export function EditCredentialModal({
   const [newApiKey, setNewApiKey] = useState("");
   const [showApiKey, setShowApiKey] = useState(false);
 
+  // 代理 URL 相关状态
+  const [proxyUrl, setProxyUrl] = useState("");
+  const [proxyError, setProxyError] = useState<string | null>(null);
+
   // 初始化表单数据
   useEffect(() => {
     if (credential) {
@@ -104,6 +110,9 @@ export function EditCredentialModal({
       // 初始化 api_key 为已保存的值
       setNewApiKey(credential.api_key || "");
       setShowApiKey(false);
+      // 初始化代理 URL 为已保存的值
+      setProxyUrl(credential.proxy_url || "");
+      setProxyError(null);
       setError(null);
     }
   }, [credential]);
@@ -165,7 +174,26 @@ export function EditCredentialModal({
     );
   };
 
+  const handleProxyUrlChange = (value: string) => {
+    setProxyUrl(value);
+    if (value && !validateProxyUrl(value)) {
+      setProxyError(
+        "代理 URL 格式无效，请使用 http://、https:// 或 socks5:// 开头的地址",
+      );
+    } else {
+      setProxyError(null);
+    }
+  };
+
   const handleSubmit = async () => {
+    // 验证代理 URL 格式
+    if (proxyUrl && !validateProxyUrl(proxyUrl)) {
+      setProxyError(
+        "代理 URL 格式无效，请使用 http://、https:// 或 socks5:// 开头的地址",
+      );
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -184,6 +212,8 @@ export function EditCredentialModal({
         new_base_url: isApiKey ? newBaseUrl.trim() : undefined,
         // API Key 的 api_key（始终传递当前值）
         new_api_key: isApiKey ? newApiKey.trim() : undefined,
+        // 代理 URL（空字符串表示清除，使用全局代理）
+        new_proxy_url: proxyUrl.trim() || undefined,
       };
 
       console.log("[EditCredentialModal] 提交更新请求:", updateRequest);
@@ -407,6 +437,51 @@ export function EditCredentialModal({
               </div>
             </div>
 
+            {/* 高级选项：代理设置 */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-blue-500" />
+                <label className="text-sm font-medium">凭证代理设置</label>
+                <span className="text-xs text-muted-foreground">
+                  （高级选项）
+                </span>
+              </div>
+              <div className="rounded-lg border p-4 space-y-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">
+                    代理 URL（可选）
+                  </label>
+                  <input
+                    type="text"
+                    value={proxyUrl}
+                    onChange={(e) => handleProxyUrlChange(e.target.value)}
+                    placeholder="例如: http://127.0.0.1:7890 或 socks5://127.0.0.1:1080"
+                    className={`w-full rounded-lg border bg-background px-3 py-2 text-sm ${
+                      proxyError ? "border-red-500" : ""
+                    }`}
+                  />
+                  {proxyError ? (
+                    <p className="text-xs text-red-500 mt-1">{proxyError}</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      留空则使用全局代理设置。支持 http://、https://、socks5://
+                      协议
+                    </p>
+                  )}
+                </div>
+                <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-3 text-xs">
+                  <p className="font-medium text-blue-700 dark:text-blue-300">
+                    代理优先级说明：
+                  </p>
+                  <ul className="mt-1 list-inside list-disc text-blue-600 dark:text-blue-400">
+                    <li>此凭证代理优先于全局代理</li>
+                    <li>留空时使用全局代理设置</li>
+                    <li>全局代理可在「设置 → 通用」中配置</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
             {/* 使用统计（只读） */}
             <div className="rounded-lg bg-muted/50 p-4">
               <label className="mb-3 block text-sm font-medium">使用统计</label>
@@ -457,7 +532,7 @@ export function EditCredentialModal({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={loading || !!proxyError}
             className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             {loading ? "保存中..." : "保存更改"}

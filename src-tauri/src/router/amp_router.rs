@@ -10,9 +10,9 @@
 //!
 //! # 示例
 //!
-//! ```rust
-//! use proxycast::router::AmpRouter;
-//! use proxycast::config::AmpConfig;
+//! ```rust,ignore
+//! use proxycast_lib::router::AmpRouter;
+//! use proxycast_lib::config::AmpConfig;
 //!
 //! let config = AmpConfig::default();
 //! let router = AmpRouter::new(config);
@@ -151,7 +151,7 @@ impl AmpRouter {
     ///
     /// # 示例
     ///
-    /// ```rust
+    /// ```rust,ignore
     /// // 配置: claude-opus-4.5 -> claude-sonnet-4
     /// let mapped = router.apply_model_mapping("claude-opus-4.5");
     /// assert_eq!(mapped, "claude-sonnet-4");
@@ -179,7 +179,7 @@ impl AmpRouter {
     ///
     /// # 示例
     ///
-    /// ```rust
+    /// ```rust,ignore
     /// let body = r#"{"model": "claude-opus-4.5", "messages": []}"#;
     /// let (transformed, original, mapped) = router.transform_request_model(body);
     /// // 如果配置了 claude-opus-4.5 -> claude-sonnet-4

@@ -133,6 +133,8 @@ export interface CredentialDisplay {
   base_url?: string;
   // API Key 凭证的完整 api_key（仅用于 OpenAI/Claude API Key 类型，用于编辑）
   api_key?: string;
+  // 凭证级代理 URL（可覆盖全局代理设置）
+  proxy_url?: string;
 }
 
 // Pool statistics
@@ -204,6 +206,8 @@ export interface UpdateCredentialRequest {
   new_base_url?: string;
   /// API Key 相关：新的 api_key（仅适用于 API Key 凭证）
   new_api_key?: string;
+  /// 新的代理 URL（可覆盖全局代理设置）
+  new_proxy_url?: string;
 }
 
 export const providerPoolApi = {
