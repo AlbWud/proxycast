@@ -1,6 +1,6 @@
 //! WebSocket 相关的 Tauri 命令
 
-use crate::websocket::{WsConfig, WsConnection, WsStatsSnapshot};
+use crate::websocket::{WsConnection, WsStatsSnapshot};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;

@@ -8,7 +8,6 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
-use futures::stream;
 
 use crate::converter::anthropic_to_openai::convert_anthropic_to_openai;
 use crate::converter::openai_to_antigravity::{
@@ -18,8 +17,7 @@ use crate::models::anthropic::AnthropicMessagesRequest;
 use crate::models::openai::ChatCompletionRequest;
 use crate::models::provider_pool_model::{CredentialData, ProviderCredential};
 use crate::providers::{
-    AntigravityProvider, ClaudeCustomProvider, GeminiProvider, KiroProvider, OpenAICustomProvider,
-    QwenProvider, VertexProvider,
+    AntigravityProvider, ClaudeCustomProvider, KiroProvider, OpenAICustomProvider, VertexProvider,
 };
 use crate::server::AppState;
 use crate::server_utils::{
@@ -650,7 +648,7 @@ pub async fn call_provider_openai(
     credential: &ProviderCredential,
     request: &ChatCompletionRequest,
 ) -> Response {
-    let start_time = std::time::Instant::now();
+    let _start_time = std::time::Instant::now();
     match &credential.credential {
         CredentialData::KiroOAuth { creds_file_path } => {
             let mut kiro = KiroProvider::new();

@@ -110,11 +110,7 @@ pub async fn handle_websocket(socket: WebSocket, state: AppState, client_info: O
                         let response = handle_ws_message(&state, &conn_id, ws_msg).await;
                         if let Some(resp) = response {
                             let resp_text = serde_json::to_string(&resp).unwrap_or_default();
-                            if sender
-                                .send(WsMessage::Text(resp_text.into()))
-                                .await
-                                .is_err()
-                            {
+                            if sender.send(WsMessage::Text(resp_text)).await.is_err() {
                                 break;
                             }
                         }
@@ -126,11 +122,7 @@ pub async fn handle_websocket(socket: WebSocket, state: AppState, client_info: O
                             e
                         )));
                         let error_text = serde_json::to_string(&error).unwrap_or_default();
-                        if sender
-                            .send(WsMessage::Text(error_text.into()))
-                            .await
-                            .is_err()
-                        {
+                        if sender.send(WsMessage::Text(error_text)).await.is_err() {
                             break;
                         }
                     }
@@ -142,11 +134,7 @@ pub async fn handle_websocket(socket: WebSocket, state: AppState, client_info: O
                     "Binary messages not supported",
                 ));
                 let error_text = serde_json::to_string(&error).unwrap_or_default();
-                if sender
-                    .send(WsMessage::Text(error_text.into()))
-                    .await
-                    .is_err()
-                {
+                if sender.send(WsMessage::Text(error_text)).await.is_err() {
                     break;
                 }
             }

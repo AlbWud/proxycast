@@ -4,9 +4,6 @@ use crate::config::{
     ReloadResult,
 };
 use crate::converter::anthropic_to_openai::convert_anthropic_to_openai;
-use crate::converter::openai_to_antigravity::{
-    convert_antigravity_to_openai_response, convert_openai_to_antigravity_with_context,
-};
 use crate::credential::CredentialSyncService;
 use crate::database::dao::provider_pool::ProviderPoolDao;
 use crate::database::DbConnection;
@@ -23,28 +20,25 @@ use crate::providers::gemini::GeminiProvider;
 use crate::providers::kiro::KiroProvider;
 use crate::providers::openai_custom::OpenAICustomProvider;
 use crate::providers::qwen::QwenProvider;
-use crate::providers::vertex::VertexProvider;
 use crate::server_utils::{
     build_anthropic_response, build_anthropic_stream_response, build_gemini_native_request, health,
-    message_content_len, models, parse_cw_response, safe_truncate, CWParsedResponse,
+    models, parse_cw_response,
 };
 use crate::services::provider_pool_service::ProviderPoolService;
 use crate::services::token_cache_service::TokenCacheService;
-use crate::telemetry::{RequestLog, RequestStatus};
 use crate::websocket::{WsConfig, WsConnectionManager, WsStats};
 use axum::{
     body::Body,
     extract::{DefaultBodyLimit, Path, State},
-    http::{header, HeaderMap, StatusCode},
+    http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
 };
-use futures::stream;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Arc;
-use tokio::sync::{mpsc, oneshot, RwLock};
+use tokio::sync::{oneshot, RwLock};
 
 /// 记录请求统计到遥测系统
 pub fn record_request_telemetry(
@@ -1527,7 +1521,7 @@ async fn amp_management_proxy_internal(
         None => {
             state.logs.write().await.add(
                 "warn",
-                &format!("[AMP] No upstream URL configured for management proxy"),
+                "[AMP] No upstream URL configured for management proxy",
             );
             return (
                 StatusCode::SERVICE_UNAVAILABLE,
@@ -1797,5 +1791,3 @@ async fn chat_completions_internal(state: &AppState, request: &ChatCompletionReq
             .into_response(),
     }
 }
-
-use crate::models::provider_pool_model::ProviderCredential;

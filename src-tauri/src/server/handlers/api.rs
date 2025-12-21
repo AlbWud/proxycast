@@ -3,29 +3,21 @@
 //! 处理 OpenAI 和 Anthropic 格式的 API 请求
 
 use axum::{
-    body::Body,
     extract::State,
-    http::{header, HeaderMap, StatusCode},
+    http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
     Json,
 };
-use futures::stream;
 
 use crate::converter::anthropic_to_openai::convert_anthropic_to_openai;
-use crate::converter::openai_to_antigravity::{
-    convert_antigravity_to_openai_response, convert_openai_to_antigravity_with_context,
-};
 use crate::models::anthropic::AnthropicMessagesRequest;
 use crate::models::openai::ChatCompletionRequest;
 use crate::processor::RequestContext;
-use crate::providers::{AntigravityProvider, GeminiProvider, KiroProvider, QwenProvider};
 use crate::server::{record_request_telemetry, record_token_usage, AppState};
 use crate::server_utils::{
     build_anthropic_response, build_anthropic_stream_response, message_content_len,
     parse_cw_response, safe_truncate,
 };
-use crate::telemetry::RequestStatus;
-use crate::ProviderType;
 
 use super::{call_provider_anthropic, call_provider_openai};
 
