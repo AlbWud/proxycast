@@ -51,7 +51,13 @@ pub struct CodexCredentials {
     )]
     pub refresh_token: Option<String>,
     /// API Key（Codex CLI 支持通过 API Key 登录）
-    #[serde(default, skip_serializing_if = "Option::is_none", alias = "apiKey")]
+    /// 支持字段名: api_key, apiKey, OPENAI_API_KEY
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        alias = "apiKey",
+        alias = "OPENAI_API_KEY"
+    )]
     pub api_key: Option<String>,
     /// API Base URL（可选）
     #[serde(default, skip_serializing_if = "Option::is_none", alias = "apiBaseUrl")]

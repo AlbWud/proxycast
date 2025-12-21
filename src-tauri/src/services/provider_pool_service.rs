@@ -837,6 +837,7 @@ impl ProviderPoolService {
     }
 
     // Codex 健康检查
+    // 支持 Yunyi 等代理使用 responses API 格式
     async fn check_codex_health(&self, creds_path: &str, model: &str) -> Result<(), String> {
         use crate::providers::codex::CodexProvider;
 
@@ -846,13 +847,14 @@ impl ProviderPoolService {
             .await
             .map_err(|e| format!("加载 Codex 凭证失败: {}", e))?;
 
-        let token = provider
-            .ensure_valid_token()
-            .await
-            .map_err(|e| format!("获取 Codex Token 失败: {}", e))?;
+        let token = provider.ensure_valid_token().await.map_err(|e| {
+            format!(
+                "获取 Codex Token 失败: 配置错误，请检查凭证设置。详情：{}",
+                e
+            )
+        })?;
 
-        // 使用 OpenAI 兼容 API 进行健康检查
-        // 兼容 Codex CLI API Key 模式：如果 auth.json 提供 api_base_url，则优先使用
+        // 获取 base_url，如果设置了则使用 responses API，否则使用 OpenAI chat/completions
         let base_url = provider
             .credentials
             .api_base_url
@@ -860,7 +862,59 @@ impl ProviderPoolService {
             .map(|s| s.trim())
             .filter(|s| !s.is_empty());
 
-        self.check_openai_health(&token, base_url, model).await
+        match base_url {
+            Some(base) => {
+                // 使用自定义 base_url (如 Yunyi)，使用 responses API 格式
+                let base = base.trim_end_matches('/');
+                let url = if base.ends_with("/v1") {
+                    format!("{}/responses", base)
+                } else {
+                    format!("{}/v1/responses", base)
+                };
+
+                // Codex/Yunyi 使用 responses API 格式
+                let request_body = serde_json::json!({
+                    "model": model,
+                    "input": "Say OK",
+                    "max_output_tokens": 10
+                });
+
+                tracing::debug!(
+                    "[HEALTH_CHECK] Codex responses API URL: {}, model: {}",
+                    url,
+                    model
+                );
+
+                let response = self
+                    .client
+                    .post(&url)
+                    .bearer_auth(&token)
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "text/event-stream")
+                    .header("Openai-Beta", "responses=experimental")
+                    .json(&request_body)
+                    .timeout(self.health_check_timeout)
+                    .send()
+                    .await
+                    .map_err(|e| format!("请求失败: {}", e))?;
+
+                if response.status().is_success() {
+                    Ok(())
+                } else {
+                    let status = response.status();
+                    let body = response.text().await.unwrap_or_default();
+                    Err(format!(
+                        "HTTP {} - {}",
+                        status,
+                        body.chars().take(200).collect::<String>()
+                    ))
+                }
+            }
+            None => {
+                // 没有自定义 base_url，使用 OpenAI 官方 chat/completions API
+                self.check_openai_health(&token, None, model).await
+            }
+        }
     }
 
     // Claude OAuth 健康检查
