@@ -68,6 +68,53 @@ export type StopReason =
   | "end_turn"
   | { other: string };
 
+// ============================================================================
+// 清理相关类型
+// ============================================================================
+
+/**
+ * 清理类型
+ */
+export type CleanupType =
+  | "All"
+  | "ByTime"
+  | "ByCount"
+  | "ByStatus"
+  | "ByProvider"
+  | "BySize";
+
+/**
+ * 清理 Flow 请求参数
+ */
+export interface CleanupFlowsRequest {
+  /** 清理类型 */
+  cleanup_type: CleanupType;
+  /** 保留天数（清理此天数之前的数据）- 仅当 cleanup_type 为 ByTime 时使用 */
+  retention_days?: number;
+  /** 保留小时数（清理此小时数之前的数据）- 仅当 cleanup_type 为 ByTime 时使用 */
+  retention_hours?: number;
+  /** 保留的最大记录数 - 仅当 cleanup_type 为 ByCount 时使用 */
+  max_records?: number;
+  /** 要清理的状态列表 - 仅当 cleanup_type 为 ByStatus 时使用 */
+  target_states?: string[];
+  /** 要清理的 Provider 列表 - 仅当 cleanup_type 为 ByProvider 时使用 */
+  target_providers?: string[];
+  /** 最大存储大小（字节）- 仅当 cleanup_type 为 BySize 时使用 */
+  max_storage_bytes?: number;
+}
+
+/**
+ * 清理结果
+ */
+export interface CleanupFlowsResponse {
+  /** 清理的 Flow 数量 */
+  cleaned_count: number;
+  /** 清理的文件数量 */
+  cleaned_files: number;
+  /** 释放的空间（字节） */
+  freed_bytes: number;
+}
+
 /**
  * 错误类型
  */
@@ -798,17 +845,15 @@ export const flowMonitorApi = {
   },
 
   /**
-   * 清理旧的 Flow 数据
+   * 清理 Flow 数据
    *
-   * @param beforeDays - 清理多少天前的数据
-   * @returns 清理的 Flow 数量
+   * @param request - 清理请求参数
+   * @returns 清理结果
    */
-  async cleanupFlows(beforeDays: number): Promise<number> {
-    // 后端期望 request: CleanupFlowsRequest { retention_days }
-    const result = await invoke<{ cleaned_count: number }>("cleanup_flows", {
-      request: { retention_days: beforeDays },
-    });
-    return result.cleaned_count;
+  async cleanupFlows(
+    request: CleanupFlowsRequest,
+  ): Promise<CleanupFlowsResponse> {
+    return invoke("cleanup_flows", { request });
   },
 
   /**

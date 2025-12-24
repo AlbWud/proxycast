@@ -16,7 +16,6 @@ import { ErrorDisplay, useErrorDisplay } from "./ErrorDisplay";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { HelpTip } from "@/components/HelpTip";
 import { getConfig, saveConfig, Config } from "@/hooks/useTauri";
-import { GeminiApiKeySection } from "./GeminiApiKeySection";
 import { VertexAISection } from "./VertexAISection";
 import { AmpConfigSection } from "./AmpConfigSection";
 import { ProviderIcon } from "@/icons/providers";
@@ -42,10 +41,14 @@ const oauthProviderTypes: PoolProviderType[] = [
 ];
 
 // API Key 类型凭证（直接填入 API Key）
-const apiKeyProviderTypes: PoolProviderType[] = ["openai", "claude"];
+const apiKeyProviderTypes: PoolProviderType[] = [
+  "openai",
+  "claude",
+  "gemini_api_key",
+];
 
 // 配置类型 tab（非凭证池，存储在配置文件中）
-type ConfigTabType = "vertex" | "amp" | "gemini_api_key";
+type ConfigTabType = "vertex" | "amp";
 
 // 所有 tab 类型
 type TabType = PoolProviderType | ConfigTabType;
@@ -66,12 +69,11 @@ const providerLabels: Record<PoolProviderType, string> = {
 const configTabLabels: Record<ConfigTabType, string> = {
   vertex: "Vertex AI",
   amp: "Amp CLI",
-  gemini_api_key: "Gemini API Key",
 };
 
 // 判断是否为配置类型 tab
 const isConfigTab = (tab: TabType): tab is ConfigTabType => {
-  return ["vertex", "amp", "gemini_api_key"].includes(tab);
+  return ["vertex", "amp"].includes(tab);
 };
 
 // 分类类型
@@ -487,30 +489,6 @@ export const ProviderPoolPage = forwardRef<ProviderPoolPageRef>(
                 </button>
               );
             })}
-            {/* Gemini API Key - 配置文件存储但归类到 API Key */}
-            <button
-              onClick={() => setActiveTab("gemini_api_key")}
-              title="Gemini API Key"
-              className={`group relative flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
-                activeTab === "gemini_api_key"
-                  ? "border-primary bg-primary/10 text-primary shadow-sm"
-                  : "border-border bg-card hover:border-primary/50 hover:bg-muted text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <ProviderIcon providerType="gemini" size={20} />
-              <span className="text-sm font-medium">Gemini</span>
-              {(config?.credential_pool?.gemini_api_keys?.length ?? 0) > 0 && (
-                <span
-                  className={`min-w-[1.25rem] h-5 flex items-center justify-center rounded-full text-xs font-medium ${
-                    activeTab === "gemini_api_key"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted-foreground/20 text-muted-foreground group-hover:bg-primary/20 group-hover:text-primary"
-                  }`}
-                >
-                  {config?.credential_pool?.gemini_api_keys?.length}
-                </span>
-              )}
-            </button>
           </div>
         )}
         {activeCategory === "config" && (
@@ -542,33 +520,6 @@ export const ProviderPoolPage = forwardRef<ProviderPoolPageRef>(
             </div>
           ) : config ? (
             <div className="space-y-4">
-              {activeTab === "gemini_api_key" && (
-                <>
-                  <GeminiApiKeySection
-                    entries={config.credential_pool?.gemini_api_keys ?? []}
-                    onChange={(entries) =>
-                      setConfig({
-                        ...config,
-                        credential_pool: {
-                          ...config.credential_pool,
-                          gemini_api_keys: entries,
-                        },
-                      })
-                    }
-                  />
-                  {(config.credential_pool?.gemini_api_keys?.length ?? 0) >
-                    0 && (
-                    <button
-                      onClick={handleSaveConfig}
-                      disabled={configSaving}
-                      className="w-full px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
-                    >
-                      {configSaving ? "保存中..." : "保存配置"}
-                    </button>
-                  )}
-                </>
-              )}
-
               {activeTab === "vertex" && (
                 <>
                   <VertexAISection

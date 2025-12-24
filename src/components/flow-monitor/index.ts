@@ -4,6 +4,7 @@ export { FlowDetail } from "./FlowDetail";
 export { FlowTimeline, FlowTimelineCompact } from "./FlowTimeline";
 export { FlowStats } from "./FlowStats";
 export { ExportDialog } from "./ExportDialog";
+export { CleanupDialog } from "./CleanupDialog";
 export { FilterExpressionInput } from "./FilterExpressionInput";
 export { FilterHelp } from "./FilterHelp";
 export { InterceptPanel } from "./InterceptPanel";

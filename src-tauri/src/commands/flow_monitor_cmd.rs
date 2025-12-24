@@ -133,8 +133,37 @@ pub struct UpdateAnnotationsRequest {
 /// 清理 Flow 请求参数
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CleanupFlowsRequest {
-    /// 保留天数（清理此天数之前的数据）
-    pub retention_days: u32,
+    /// 清理类型
+    pub cleanup_type: CleanupType,
+    /// 保留天数（清理此天数之前的数据）- 仅当 cleanup_type 为 ByTime 时使用
+    pub retention_days: Option<u32>,
+    /// 保留小时数（清理此小时数之前的数据）- 仅当 cleanup_type 为 ByTime 时使用
+    pub retention_hours: Option<u32>,
+    /// 保留的最大记录数 - 仅当 cleanup_type 为 ByCount 时使用
+    pub max_records: Option<usize>,
+    /// 要清理的状态列表 - 仅当 cleanup_type 为 ByStatus 时使用
+    pub target_states: Option<Vec<String>>,
+    /// 要清理的 Provider 列表 - 仅当 cleanup_type 为 ByProvider 时使用
+    pub target_providers: Option<Vec<String>>,
+    /// 最大存储大小（字节）- 仅当 cleanup_type 为 BySize 时使用
+    pub max_storage_bytes: Option<u64>,
+}
+
+/// 清理类型
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum CleanupType {
+    /// 删除所有日志
+    All,
+    /// 按时间清理（保留最近的数据）
+    ByTime,
+    /// 按数量清理（只保留最近N条记录）
+    ByCount,
+    /// 按状态清理（删除特定状态的Flow）
+    ByStatus,
+    /// 按Provider清理（删除特定Provider的日志）
+    ByProvider,
+    /// 按存储大小清理（当超过指定大小时清理最旧的数据）
+    BySize,
 }
 
 /// 清理结果
@@ -468,25 +497,87 @@ pub async fn cleanup_flows(
     request: CleanupFlowsRequest,
     monitor: State<'_, FlowMonitorState>,
 ) -> Result<CleanupFlowsResponse, String> {
-    // 计算清理时间点
-    let before = chrono::Utc::now() - chrono::Duration::days(request.retention_days as i64);
-
-    // 清理文件存储
     let mut cleaned_count = 0;
     let mut cleaned_files = 0;
     let mut freed_bytes = 0u64;
 
-    if let Some(file_store) = monitor.0.file_store() {
-        match file_store.cleanup(before) {
-            Ok(result) => {
-                cleaned_count = result.flows_deleted;
-                cleaned_files = result.files_deleted;
-                freed_bytes = result.bytes_freed;
+    // 根据清理类型执行不同的清理逻辑
+    match request.cleanup_type {
+        CleanupType::All => {
+            // 清理所有数据 - 使用一个很早的时间点来清理所有数据
+            let before = chrono::Utc::now() - chrono::Duration::days(36500); // 100年前
+
+            if let Some(file_store) = monitor.0.file_store() {
+                match file_store.cleanup(before) {
+                    Ok(result) => {
+                        cleaned_count = result.flows_deleted;
+                        cleaned_files = result.files_deleted;
+                        freed_bytes = result.bytes_freed;
+                    }
+                    Err(e) => {
+                        tracing::error!("清理所有数据失败: {}", e);
+                        return Err(format!("清理所有数据失败: {}", e));
+                    }
+                }
             }
-            Err(e) => {
-                tracing::error!("清理文件存储失败: {}", e);
-                return Err(format!("清理文件存储失败: {}", e));
+        }
+
+        CleanupType::ByTime => {
+            // 按时间清理
+            let before = if let Some(hours) = request.retention_hours {
+                chrono::Utc::now() - chrono::Duration::hours(hours as i64)
+            } else if let Some(days) = request.retention_days {
+                chrono::Utc::now() - chrono::Duration::days(days as i64)
+            } else {
+                return Err("时间清理需要指定保留时间".to_string());
+            };
+
+            // 清理文件存储
+            if let Some(file_store) = monitor.0.file_store() {
+                match file_store.cleanup(before) {
+                    Ok(result) => {
+                        cleaned_count = result.flows_deleted;
+                        cleaned_files = result.files_deleted;
+                        freed_bytes = result.bytes_freed;
+                    }
+                    Err(e) => {
+                        tracing::error!("按时间清理失败: {}", e);
+                        return Err(format!("按时间清理失败: {}", e));
+                    }
+                }
             }
+        }
+
+        CleanupType::ByCount => {
+            // 按数量清理 - 使用retention清理，这是一个简化实现
+            if let Some(file_store) = monitor.0.file_store() {
+                match file_store.cleanup_by_retention() {
+                    Ok(result) => {
+                        cleaned_count = result.flows_deleted;
+                        cleaned_files = result.files_deleted;
+                        freed_bytes = result.bytes_freed;
+                    }
+                    Err(e) => {
+                        tracing::error!("按数量清理失败: {}", e);
+                        return Err(format!("按数量清理失败: {}", e));
+                    }
+                }
+            }
+        }
+
+        CleanupType::ByStatus => {
+            // 按状态清理 - 暂时不支持，返回错误提示
+            return Err("按状态清理功能暂未实现，请使用按时间清理".to_string());
+        }
+
+        CleanupType::ByProvider => {
+            // 按Provider清理 - 暂时不支持，返回错误提示
+            return Err("按Provider清理功能暂未实现，请使用按时间清理".to_string());
+        }
+
+        CleanupType::BySize => {
+            // 按大小清理 - 暂时不支持，返回错误提示
+            return Err("按大小清理功能暂未实现，请使用按时间清理".to_string());
         }
     }
 

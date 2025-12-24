@@ -8,6 +8,7 @@ import {
   ChevronDown,
   Monitor,
   Maximize,
+  Trash2,
 } from "lucide-react";
 import {
   FlowList,
@@ -15,6 +16,7 @@ import {
   FlowDetail,
   FlowStats,
   ExportDialog,
+  CleanupDialog,
 } from "@/components/flow-monitor";
 import {
   type LLMFlow,
@@ -39,6 +41,9 @@ export function FlowMonitorPage() {
   // 导出对话框
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportFlowIds, setExportFlowIds] = useState<string[]>([]);
+
+  // 清理对话框
+  const [cleanupDialogOpen, setCleanupDialogOpen] = useState(false);
 
   // 刷新计数器（用于触发子组件刷新）
   const [refreshKey, setRefreshKey] = useState(0);
@@ -119,6 +124,12 @@ export function FlowMonitorPage() {
   const handleExportSuccess = useCallback((filename: string) => {
     console.log("导出成功:", filename);
   }, []);
+
+  // 清理成功
+  const handleCleanupSuccess = useCallback(() => {
+    // 清理成功后刷新数据
+    handleRefresh();
+  }, [handleRefresh]);
 
   // 设置窗口大小
   const handleSetWindowSize = useCallback(async (optionId: string) => {
@@ -245,6 +256,16 @@ export function FlowMonitorPage() {
             导出
           </button>
 
+          {/* 清理按钮 */}
+          <button
+            onClick={() => setCleanupDialogOpen(true)}
+            className="flex items-center gap-1 rounded-lg border px-3 py-2 text-sm hover:bg-muted text-red-600 hover:bg-red-50 hover:border-red-300 dark:text-red-400 dark:hover:bg-red-950/20"
+            title="清理日志数据"
+          >
+            <Trash2 className="h-4 w-4" />
+            清理
+          </button>
+
           {/* 刷新按钮 */}
           <button
             onClick={handleRefresh}
@@ -295,6 +316,13 @@ export function FlowMonitorPage() {
         flowIds={exportFlowIds.length > 0 ? exportFlowIds : undefined}
         filter={exportFlowIds.length === 0 ? filter : undefined}
         onExportSuccess={handleExportSuccess}
+      />
+
+      {/* 清理对话框 */}
+      <CleanupDialog
+        isOpen={cleanupDialogOpen}
+        onClose={() => setCleanupDialogOpen(false)}
+        onSuccess={handleCleanupSuccess}
       />
     </div>
   );
