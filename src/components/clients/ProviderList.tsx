@@ -210,6 +210,7 @@ export function ProviderList({ appType }: ProviderListProps) {
   const [showSyncDialog, setShowSyncDialog] = useState(false);
   const [syncResult, setSyncResult] = useState<SyncCheckResult | null>(null);
   const [checkingSync, setCheckingSync] = useState(false);
+  const [switchingId, setSwitchingId] = useState<string | null>(null);
 
   // 实际生效的配置
   const [liveConfig, setLiveConfig] = useState<Record<string, unknown> | null>(
@@ -284,12 +285,15 @@ export function ProviderList({ appType }: ProviderListProps) {
   // 切换到匹配的 provider
   const handleSwitchToMatching = async (provider: Provider) => {
     try {
+      setSwitchingId(provider.id);
       await switchToProvider(provider.id);
       // 切换后重新读取实际配置，更新 UI 状态
       const config = await switchApi.readLiveSettings(appType);
       setLiveConfig(config);
     } catch (e) {
-      alert("切换失败: " + (e instanceof Error ? e.message : String(e)));
+      console.error("切换失败:", e);
+    } finally {
+      setSwitchingId(null);
     }
   };
 
@@ -523,7 +527,20 @@ export function ProviderList({ appType }: ProviderListProps) {
               key={provider.id}
               provider={provider}
               isCurrent={provider.id === currentProvider?.id}
-              onSwitch={() => switchToProvider(provider.id)}
+              switching={switchingId === provider.id}
+              onSwitch={async () => {
+                try {
+                  setSwitchingId(provider.id);
+                  await switchToProvider(provider.id);
+                  // 切换后重新读取实际配置
+                  const config = await switchApi.readLiveSettings(appType);
+                  setLiveConfig(config);
+                } catch (e) {
+                  console.error("切换失败:", e);
+                } finally {
+                  setSwitchingId(null);
+                }
+              }}
               onEdit={() => handleEdit(provider)}
               onDelete={() => handleDeleteClick(provider.id)}
             />

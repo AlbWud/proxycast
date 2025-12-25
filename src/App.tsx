@@ -5,6 +5,8 @@ import { ApiServerPage } from "./components/api-server/ApiServerPage";
 import { ProviderPoolPage } from "./components/provider-pool";
 import { ConfigManagementPage } from "./components/config/ConfigManagementPage";
 import { FlowMonitorPage } from "./pages";
+import { ToolsPage } from "./components/tools/ToolsPage";
+import { BrowserInterceptorTool } from "./components/tools/browser-interceptor/BrowserInterceptorTool";
 import { flowEventManager } from "./lib/flowEventManager";
 
 type Page =
@@ -12,6 +14,8 @@ type Page =
   | "config-management"
   | "api-server"
   | "flow-monitor"
+  | "tools"
+  | "browser-interceptor"
   | "settings";
 
 function App() {
@@ -33,6 +37,10 @@ function App() {
         return <ApiServerPage />;
       case "flow-monitor":
         return <FlowMonitorPage />;
+      case "tools":
+        return <ToolsPage onNavigate={setCurrentPage} />;
+      case "browser-interceptor":
+        return <BrowserInterceptorTool onNavigate={setCurrentPage} />;
       case "settings":
         return <SettingsPage />;
       default:
