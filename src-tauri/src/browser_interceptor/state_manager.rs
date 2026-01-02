@@ -292,7 +292,7 @@ impl StateManager {
 
     /// 备份注册表项（Windows 特定）
     async fn backup_registry_keys(&self) -> Result<std::collections::HashMap<String, String>> {
-        let backup = std::collections::HashMap::new();
+        let mut backup = std::collections::HashMap::new();
 
         #[cfg(target_os = "windows")]
         {
